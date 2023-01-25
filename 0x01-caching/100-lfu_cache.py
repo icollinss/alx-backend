@@ -1,73 +1,40 @@
-#!/usr/bin/python3
-""" 5. LFU Caching
-"""
-
-from enum import Enum
-from heapq import heappush, heappop
-from itertools import count
-
-BaseCaching = __import__("base_caching").BaseCaching
-
-
-class HeapItemStatus(Enum):
-    """ HeapItemStatus
+#!/usr/bin/env python3
+""" caching system
     """
-    ACTIVE = 1
-    INACTIVE = 2
+
+from base_caching import BaseCaching
 
 
 class LFUCache(BaseCaching):
-    """ LFUCache """
+    """ caching system:
+    Args:
+        LFUCache ([class]): [basic caching]
+    """
 
-    def __init__(self):
-        """ Init
-        """
+    def __init__(self) -> None:
+        """ initialize of class """
+        self.temp_list = {}
         super().__init__()
-        self.heap = []
-        self.map = {}
-        self.counter = count()
 
     def put(self, key, item):
-        """ put """
-        if key and item:
-            if key in self.cache_data:
-                self.rehydrate(key)
-            else:
-                if self.is_full():
-                    self.evict()
-                self.add_to_heap(key)
+        """ Add an item in the cache
+        """
+        if not (key is None or item is None):
             self.cache_data[key] = item
+            if len(self.cache_data.keys()) > self.MAX_ITEMS:
+                pop = min(self.temp_list, key=self.temp_list.get)
+                self.temp_list.pop(pop)
+                self.cache_data.pop(pop)
+                print(f"DISCARD: {pop}")
+            if not (key in self.temp_list):
+                self.temp_list[key] = 0
+            else:
+                self.temp_list[key] += 1
 
     def get(self, key):
-        """ get """
-        if key in self.cache_data:
-            self.rehydrate(key)
-            return self.cache_data.get(key)
-
-    def is_full(self):
-        """ check number of items  """
-        return len(self.cache_data) >= self.MAX_ITEMS
-
-    def evict(self):
-        """ evict """
-        while self.heap:
-            _, __, item, status = heappop(self.heap)
-            if status == HeapItemStatus.ACTIVE:
-                print("DISCARD: " + str(item))
-                del self.cache_data[item]
-                return
-
-    def rehydrate(self, key):
-        """ Marks current item as inactive and reinserts updated count back
-        into heap.
+        """ Get an item by key
         """
-        entry = self.map[key]
-        entry[-1] = HeapItemStatus.INACTIVE
-        self.add_to_heap(key, entry[0])
-
-    def add_to_heap(self, key, count=0):
-        """ Adds a new entry into heap.
-        """
-        entry = [1 + count, next(self.counter), key, HeapItemStatus.ACTIVE]
-        self.map[key] = entry
-        heappush(self.heap, entry)
+        if (key is None) or not (key in self.cache_data):
+            return None
+        self.temp_list[key] += 1
+        return self.cache_data.get(key)
