@@ -1,34 +1,51 @@
 #!/usr/bin/env python3
-""" lru cach module """
+"""
+LRU Caching
+"""
 
 
-from collections import deque
+from lib2to3.pgen2.token import BACKQUOTE
+from typing import OrderedDict
+
+
 BaseCaching = __import__('base_caching').BaseCaching
 
 
 class LRUCache(BaseCaching):
-    """ LRU """
+    """
+    class LRUCache that inherits from BaseCaching and is a caching system
+    """
 
     def __init__(self):
-        """ constructor """
+        """
+        Init method
+        """
         super().__init__()
-        self.queue = deque()
+        self.lru_order = OrderedDict()
 
     def put(self, key, item):
-        """ put """
+        """
+        Must assign to the dictionary self.cache_data
+        the item value for the key key.
+        """
         if key and item:
-            if key in self.cache_data:
-                self.queue.remove(key)
-            elif len(self.cache_data) >= self.MAX_ITEMS:
-                popped = self.queue.popleft()
-                del self.cache_data[popped]
-                print("DISCARD: " + str(popped))
-            self.queue.append(key)
+            self.lru_order[key] = item
+            self.lru_order.move_to_end(key)
             self.cache_data[key] = item
 
+        if len(self.cache_data) > BaseCaching.MAX_ITEMS:
+            item_discarded = next(iter(self.lru_order))
+            del self.cache_data[item_discarded]
+            print("DISCARD:", item_discarded)
+
+        if len(self.lru_order) > BaseCaching.MAX_ITEMS:
+            self.lru_order.popitem(last=False)
+
     def get(self, key):
-        """ get """
+        """
+        Must return the value in self.cache_data linked to key.
+        """
         if key in self.cache_data:
-            self.queue.remove(key)
-            self.queue.append(key)
-            return self.cache_data.get(key, None)
+            self.lru_order.move_to_end(key)
+            return self.cache_data[key]
+        return None
